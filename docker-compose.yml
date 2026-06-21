@@ -1,0 +1,16 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: piclocket-mysql
+    environment:
+      MYSQL_DATABASE: piclocket
+      MYSQL_USER: piclocket_user
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - piclocket_mysql_data:/var/lib/mysql
+
+volumes:
+  piclocket_mysql_data:
