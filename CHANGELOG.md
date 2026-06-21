@@ -1,5 +1,14 @@
 # Changelog
 
+## 3 - Mock Photo Metadata Creation Endpoint
+### Updates:
+- added dtos
+- added `PhotoRepository`
+- added `PhotoService`
+- added `PhotoController` -> `POST /v1/photos/upload-request`
+- Verified full flow using postman
+- Added unit tests
+
 ## 2 - Database Setup
 ### Updates:
 - Added docker compose config for local MySQL development

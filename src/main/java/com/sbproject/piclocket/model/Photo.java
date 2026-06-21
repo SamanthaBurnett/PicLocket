@@ -2,6 +2,8 @@ package com.sbproject.piclocket.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -36,8 +38,9 @@ public class Photo {
     @Column(name = "s3_key", nullable = false, unique = true)
     private String s3Key;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status;
+    private PhotoStatus status;
 
     @Column(name = "content_type", nullable = false)
     private String contentType;
@@ -54,7 +57,7 @@ public class Photo {
     private Instant updatedAt;
 
     // When s3 confirms upload is complete
-    @Column(name = "uploaded_at", nullable = false)
+    @Column(name = "uploaded_at")
     private Instant uploadedAt;
 
     // When photo should expire
