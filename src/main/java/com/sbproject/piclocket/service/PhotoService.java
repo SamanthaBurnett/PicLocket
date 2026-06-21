@@ -19,9 +19,11 @@ public class PhotoService {
     private static final Logger log = LoggerFactory.getLogger(PhotoService.class);
     private static final String DEMO_USER_ID = "demo-user-id";
     private final PhotoRepository photoRepository;
+    private final S3PresignedUrlService s3PresignedUrlService;
 
-    public PhotoService(PhotoRepository photoRepository) {
+    public PhotoService(PhotoRepository photoRepository, S3PresignedUrlService s3PresignedUrlService) {
         this.photoRepository = photoRepository;
+        this.s3PresignedUrlService = s3PresignedUrlService;
     }
 
     public CreateUploadResponse createUploadRequest(CreateUploadRequest request) {
@@ -30,6 +32,8 @@ public class PhotoService {
         Instant expiresAt = now.plus(1, ChronoUnit.DAYS); // set to auto delete after 1 day
 
         String s3Key = "v1/users/%s/photos/%s/original".formatted(DEMO_USER_ID, photoId);
+
+        String uploadUrl = s3PresignedUrlService.generateUploadUrl(s3Key, request.contentType());
 
         Photo photo = Photo.builder()
                 .photoId(photoId)
@@ -53,8 +57,6 @@ public class PhotoService {
                 PhotoStatus.PENDING_UPLOAD
         );
 
-        String mockUploadedUrl = "https://mock-s3.local/upload/%s".formatted(photoId);
-
-        return new CreateUploadResponse(photoId, mockUploadedUrl);
+        return new CreateUploadResponse(photoId, uploadUrl);
     }
 }

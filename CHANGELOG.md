@@ -1,5 +1,13 @@
 # Changelog
 
+## 4 - S3 Presigned Upload Integration
+### Updates:
+- Added AWS SDK and S3 config properties
+- Created `S3PresignedUrlService`
+- Replaced mock with real presigned URL generation
+- Updated unit test
+- Verified flow with Postman
+
 ## 3 - Mock Photo Metadata Creation Endpoint
 ### Updates:
 - added dtos
