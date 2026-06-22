@@ -1,5 +1,13 @@
 # Changelog
 
+## 6 - Implement Photo Retrieval
+### Updates:
+- Update repository to return photos
+- Added `PhotoResponse`
+- Updated service for photo retrievals
+- Added `GET /v1/photos` endpoint
+- Added unit test coverage
+
 ## 5 - Implement Upload Verification
 ### Updates:
 - Add S3 object verification

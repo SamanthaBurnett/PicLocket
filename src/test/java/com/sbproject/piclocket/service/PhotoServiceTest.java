@@ -2,6 +2,7 @@ package com.sbproject.piclocket.service;
 
 import com.sbproject.piclocket.dto.CreateUploadRequest;
 import com.sbproject.piclocket.dto.CreateUploadResponse;
+import com.sbproject.piclocket.dto.PhotoResponse;
 import com.sbproject.piclocket.model.Photo;
 import com.sbproject.piclocket.model.PhotoStatus;
 import com.sbproject.piclocket.repository.PhotoRepository;
@@ -13,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -81,6 +83,22 @@ class PhotoServiceTest {
     }
 
     @Test
+    void getUploadedPhotos_uploadedPhotosExist_returnsUploadedPhotoResponses() {
+        UUID photoId = UUID.randomUUID();
+        Photo uploadedPhoto = createUploadedPhoto(photoId);
+
+        when(photoRepository.findByStatus(PhotoStatus.UPLOADED)).thenReturn(List.of(uploadedPhoto));
+
+        List<PhotoResponse> response = photoService.getUploadedPhotos();
+
+        assertThat(response).hasSize(1);
+        assertThat(response.getFirst().photoId()).isEqualTo(photoId);
+        assertThat(response.getFirst().status()).isEqualTo(PhotoStatus.UPLOADED);
+
+        verify(photoRepository).findByStatus(PhotoStatus.UPLOADED);
+    }
+
+    @Test
     void completeUpload_photoExistsInDbAndS3_marksPhotoUploaded() {
         UUID photoId = UUID.randomUUID();
         Photo photo = createPendingPhoto(photoId);
@@ -138,6 +156,21 @@ class PhotoServiceTest {
                 .filename(FILENAME)
                 .s3Key(S3_KEY_TEMPLATE.formatted(DEMO_USER_ID, photoId))
                 .status(PhotoStatus.PENDING_UPLOAD)
+                .contentType(CONTENT_TYPE)
+                .fileSizeBytes(FILE_SIZE_BYTES)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(86_400))
+                .build();
+    }
+
+    private Photo createUploadedPhoto(UUID photoId) {
+        return Photo.builder()
+                .photoId(photoId)
+                .userId(DEMO_USER_ID)
+                .filename(FILENAME)
+                .s3Key(S3_KEY_TEMPLATE.formatted(DEMO_USER_ID, photoId))
+                .status(PhotoStatus.UPLOADED)
                 .contentType(CONTENT_TYPE)
                 .fileSizeBytes(FILE_SIZE_BYTES)
                 .createdAt(Instant.now())

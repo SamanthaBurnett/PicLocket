@@ -2,6 +2,7 @@ package com.sbproject.piclocket.service;
 
 import com.sbproject.piclocket.dto.CreateUploadRequest;
 import com.sbproject.piclocket.dto.CreateUploadResponse;
+import com.sbproject.piclocket.dto.PhotoResponse;
 import com.sbproject.piclocket.model.Photo;
 import com.sbproject.piclocket.model.PhotoStatus;
 import com.sbproject.piclocket.repository.PhotoRepository;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -97,5 +99,20 @@ public class PhotoService {
         photoRepository.save(photo);
 
         log.info("Upload completed for photoId={}, status={}", photoId, PhotoStatus.UPLOADED);
+    }
+
+    /**
+     * Retrieves photos that have successfully uploaded to S3.
+     *
+     * @return a list of {@link PhotoResponse}
+     */
+    public List<PhotoResponse> getUploadedPhotos() {
+        return photoRepository.findByStatus(PhotoStatus.UPLOADED)
+                .stream()
+                .map(photo -> new PhotoResponse(
+                        photo.getPhotoId(),
+                        photo.getStatus()
+                ))
+                .toList();
     }
 }
