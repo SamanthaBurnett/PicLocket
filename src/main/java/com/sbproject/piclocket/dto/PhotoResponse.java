@@ -6,6 +6,7 @@ import java.util.UUID;
 
 public record PhotoResponse(
         UUID photoId,
-        PhotoStatus status
+        PhotoStatus status,
+        String downloadUrl
 ) {
 }

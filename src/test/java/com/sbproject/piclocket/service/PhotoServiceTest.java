@@ -34,6 +34,7 @@ class PhotoServiceTest {
     private static final String CONTENT_TYPE = "image/jpeg";
     private static final String S3_KEY_TEMPLATE = "v1/users/%s/photos/%s/original";
     private static final String PRESIGNED_UPLOAD_URL = "https://presigned-url.test/upload";
+    private static final String PRESIGNED_DOWNLOAD_URL = "https://presigned-url.test/download";
     private static final long FILE_SIZE_BYTES = 5_000_000L;
 
     @Mock
@@ -88,14 +89,17 @@ class PhotoServiceTest {
         Photo uploadedPhoto = createUploadedPhoto(photoId);
 
         when(photoRepository.findByStatus(PhotoStatus.UPLOADED)).thenReturn(List.of(uploadedPhoto));
+        when(s3PresignedUrlService.generateDownloadUrl(uploadedPhoto.getS3Key())).thenReturn(PRESIGNED_DOWNLOAD_URL);
 
         List<PhotoResponse> response = photoService.getUploadedPhotos();
 
         assertThat(response).hasSize(1);
         assertThat(response.getFirst().photoId()).isEqualTo(photoId);
         assertThat(response.getFirst().status()).isEqualTo(PhotoStatus.UPLOADED);
+        assertThat(response.getFirst().downloadUrl()).isEqualTo(PRESIGNED_DOWNLOAD_URL);
 
         verify(photoRepository).findByStatus(PhotoStatus.UPLOADED);
+        verify(s3PresignedUrlService).generateDownloadUrl(uploadedPhoto.getS3Key());
     }
 
     @Test

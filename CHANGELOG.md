@@ -1,5 +1,12 @@
 # Changelog
 
+## 7 - Implement Presigned Download URLs
+### Updates:
+- Added download presigned URLs
+- Updated photo response to include temp download URLs
+- Added download URL support to uploaded photo retrieval
+- Added unit test coverage
+
 ## 6 - Implement Photo Retrieval
 ### Updates:
 - Update repository to return photos

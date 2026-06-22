@@ -111,7 +111,8 @@ public class PhotoService {
                 .stream()
                 .map(photo -> new PhotoResponse(
                         photo.getPhotoId(),
-                        photo.getStatus()
+                        photo.getStatus(),
+                        s3PresignedUrlService.generateDownloadUrl(photo.getS3Key())
                 ))
                 .toList();
     }

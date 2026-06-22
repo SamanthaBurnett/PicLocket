@@ -4,8 +4,11 @@ import com.sbproject.piclocket.config.AwsProperties;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
@@ -20,6 +23,8 @@ public class S3PresignedUrlService {
 
     // Upload URLs must be short-lived. If a client waits too long, they must request a new one
     private static final Duration UPLOAD_URL_EXPIRATION = Duration.ofMinutes(15);
+    // Download URLs expiry time
+    private static final Duration DOWNLOAD_URL_EXPIRATION = Duration.ofMinutes(15);
 
     private final AwsProperties awsProperties;
     private final S3Presigner s3Presigner;
@@ -61,5 +66,32 @@ public class S3PresignedUrlService {
         URL uploadUrl = presignedRequest.url();
 
         return uploadUrl.toString();
+    }
+
+    /**
+     * Generates the url string the client can use for direct downloads from S3
+     *
+     * @param s3Key represents the path to the download from
+     * @return String representing download url
+     */
+    public String generateDownloadUrl(String s3Key) {
+        // Defines the object the client is allowed to upload to S3
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(awsProperties.s3().bucket())
+                .key(s3Key)
+                .build();
+
+        // Defines how the presigned URL should be generated including its expiration time
+        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                .signatureDuration(DOWNLOAD_URL_EXPIRATION)
+                .getObjectRequest(getObjectRequest)
+                .build();
+
+        // AWS authorizes the download request and generates the url to be used for direct downloads by the client
+        PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(presignRequest);
+
+        URL downloadUrl = presignedRequest.url();
+
+        return downloadUrl.toString();
     }
 }
