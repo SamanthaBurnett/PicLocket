@@ -1,0 +1,182 @@
+{
+  "info": {
+    "name": "PicLocket API",
+    "description": "Postman collection for PicLocket local MVP workflow: create upload request, upload file to S3 via presigned URL, complete upload, and retrieve uploaded photos.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "photoId",
+      "value": ""
+    },
+    {
+      "key": "uploadUrl",
+      "value": ""
+    },
+    {
+      "key": "filename",
+      "value": "test-image.jpg"
+    },
+    {
+      "key": "contentType",
+      "value": "image/jpeg"
+    },
+    {
+      "key": "fileSizeBytes",
+      "value": "4259"
+    }
+  ],
+  "item": [
+    {
+      "name": "1 - Create Upload Request",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"filename\": \"{{filename}}\",\n  \"contentType\": \"{{contentType}}\",\n  \"fileSizeBytes\": \"{{fileSizeBytes}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/photos/upload-request",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "photos",
+            "upload-request"
+          ]
+        },
+        "description": "Creates a PENDING_UPLOAD photo metadata row and returns a presigned S3 upload URL."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Upload request created', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const response = pm.response.json();",
+              "pm.collectionVariables.set('photoId', response.photoId);",
+              "pm.collectionVariables.set('uploadUrl', response.uploadUrl);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 - Upload File to S3",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "{{contentType}}"
+          }
+        ],
+        "body": {
+          "mode": "file",
+          "file": {
+            "src": ""
+          }
+        },
+        "url": {
+          "raw": "{{uploadUrl}}",
+          "host": [
+            "{{uploadUrl}}"
+          ]
+        },
+        "description": "Uploads the selected image file directly to S3 using the presigned URL from step 1. In Postman, manually choose a local file in Body > binary/file before sending."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('File uploaded to S3', function () {",
+              "    pm.expect([200, 204]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 - Complete Upload",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/photos/{{photoId}}/complete",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "photos",
+            "{{photoId}}",
+            "complete"
+          ]
+        },
+        "description": "Verifies the object exists in S3 using HeadObject, then transitions the DB row from PENDING_UPLOAD to UPLOADED."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Upload completed', function () {",
+              "    pm.response.to.have.status(204);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 - Get Uploaded Photos",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/photos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "photos"
+          ]
+        },
+        "description": "Retrieves uploaded photos only and includes presigned download URLs."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Uploaded photos retrieved', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

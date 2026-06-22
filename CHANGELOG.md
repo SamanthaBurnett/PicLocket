@@ -1,5 +1,10 @@
 # Changelog
 
+## 8 - Documentation
+### Updates:
+- Add postman collection for testing
+- Update readme with diagrams
+
 ## 7 - Implement Presigned Download URLs
 ### Updates:
 - Added download presigned URLs
