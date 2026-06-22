@@ -4,8 +4,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
@@ -63,4 +61,11 @@ public class Photo {
     // When photo should expire
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
+
+    // Marks photo as successfully uploaded after its existence has been verified in S3
+    public void markUploaded(Instant uploadedAt) {
+        this.status = PhotoStatus.UPLOADED;
+        this.uploadedAt = uploadedAt;
+        this.updatedAt = uploadedAt;
+    }
 }

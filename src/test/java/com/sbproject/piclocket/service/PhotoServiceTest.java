@@ -12,13 +12,27 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PhotoServiceTest {
+
+    private static final String DEMO_USER_ID = "demo-user-id";
+    private static final String FILENAME = "beach.jpg";
+    private static final String CONTENT_TYPE = "image/jpeg";
+    private static final String S3_KEY_TEMPLATE = "v1/users/%s/photos/%s/original";
+    private static final String PRESIGNED_UPLOAD_URL = "https://presigned-url.test/upload";
+    private static final long FILE_SIZE_BYTES = 5_000_000L;
 
     @Mock
     private PhotoRepository photoRepository;
@@ -26,20 +40,21 @@ class PhotoServiceTest {
     @Mock
     private S3PresignedUrlService s3PresignedUrlService;
 
+    @Mock
+    private S3ObjectService s3ObjectService;
+
     @InjectMocks
     private PhotoService photoService;
 
     @Test
-    void createUploadRequest_validRequest_returns200() {
+    void createUploadRequest_validRequest_returnsUploadResponse() {
         CreateUploadRequest request = new CreateUploadRequest(
-                "beach.jpg",
-                "image/jpeg",
-                5000000L
+                FILENAME,
+                CONTENT_TYPE,
+                FILE_SIZE_BYTES
         );
 
-        String presignedUploadUrl = "https://presigned-url.test/upload";
-
-        when(s3PresignedUrlService.generateUploadUrl(anyString(), anyString())).thenReturn(presignedUploadUrl);
+        when(s3PresignedUrlService.generateUploadUrl(anyString(), anyString())).thenReturn(PRESIGNED_UPLOAD_URL);
 
         CreateUploadResponse response = photoService.createUploadRequest(request);
 
@@ -49,18 +64,85 @@ class PhotoServiceTest {
         Photo savedPhoto = photoCaptor.getValue();
 
         assertThat(savedPhoto.getPhotoId()).isNotNull();
-        assertThat(savedPhoto.getUserId()).isEqualTo("demo-user-id");
-        assertThat(savedPhoto.getFilename()).isEqualTo("beach.jpg");
-        assertThat(savedPhoto.getS3Key()).contains("v1/users/demo-user-id/photos/");
-        assertThat(savedPhoto.getS3Key()).contains(savedPhoto.getPhotoId().toString());
+        assertThat(savedPhoto.getUserId()).isEqualTo(DEMO_USER_ID);
+        assertThat(savedPhoto.getFilename()).isEqualTo(FILENAME);
+        assertThat(savedPhoto.getS3Key()).isEqualTo(S3_KEY_TEMPLATE.formatted(DEMO_USER_ID, savedPhoto.getPhotoId()));
         assertThat(savedPhoto.getStatus()).isEqualTo(PhotoStatus.PENDING_UPLOAD);
-        assertThat(savedPhoto.getContentType()).isEqualTo("image/jpeg");
-        assertThat(savedPhoto.getFileSizeBytes()).isEqualTo(5000000L);
+        assertThat(savedPhoto.getContentType()).isEqualTo(CONTENT_TYPE);
+        assertThat(savedPhoto.getFileSizeBytes()).isEqualTo(FILE_SIZE_BYTES);
+        assertThat(savedPhoto.getCreatedAt()).isNotNull();
+        assertThat(savedPhoto.getUpdatedAt()).isNotNull();
         assertThat(savedPhoto.getExpiresAt()).isNotNull();
 
-        verify(s3PresignedUrlService).generateUploadUrl(savedPhoto.getS3Key(), "image/jpeg");
+        verify(s3PresignedUrlService).generateUploadUrl(savedPhoto.getS3Key(), CONTENT_TYPE);
 
         assertThat(response.photoId()).isEqualTo(savedPhoto.getPhotoId());
-        assertThat(response.uploadUrl()).contains(presignedUploadUrl);
+        assertThat(response.uploadUrl()).contains(PRESIGNED_UPLOAD_URL);
+    }
+
+    @Test
+    void completeUpload_photoExistsInDbAndS3_marksPhotoUploaded() {
+        UUID photoId = UUID.randomUUID();
+        Photo photo = createPendingPhoto(photoId);
+
+        when(photoRepository.findById(photoId)).thenReturn(Optional.of(photo));
+        when(s3ObjectService.objectExists(photo.getS3Key())).thenReturn(true);
+
+        photoService.completeUpload(photoId);
+
+        assertThat(photo.getStatus()).isEqualTo(PhotoStatus.UPLOADED);
+        assertThat(photo.getUploadedAt()).isNotNull();
+        assertThat(photo.getUpdatedAt()).isEqualTo(photo.getUploadedAt());
+
+        verify(s3ObjectService).objectExists(photo.getS3Key());
+        verify(photoRepository).save(photo);
+    }
+
+    @Test
+    void completeUpload_photoExistsInDbButNotS3_throwsException() {
+        UUID photoId = UUID.randomUUID();
+        Photo photo = createPendingPhoto(photoId);
+
+        when(photoRepository.findById(photoId)).thenReturn(Optional.of(photo));
+        when(s3ObjectService.objectExists(photo.getS3Key())).thenReturn(false);
+
+        assertThatThrownBy(() -> photoService.completeUpload(photoId))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(photoId.toString());
+
+        assertThat(photo.getStatus()).isEqualTo(PhotoStatus.PENDING_UPLOAD);
+        assertThat(photo.getUploadedAt()).isNull();
+
+        verify(s3ObjectService).objectExists(photo.getS3Key());
+        verify(photoRepository, never()).save(photo);
+    }
+
+    @Test
+    void completeUpload_missingPhoto_throwsException() {
+        UUID photoId = UUID.randomUUID();
+
+        when(photoRepository.findById(photoId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> photoService.completeUpload(photoId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining(photoId.toString());
+
+        verify(s3ObjectService, never()).objectExists(anyString());
+        verify(photoRepository, never()).save(any(Photo.class));
+    }
+
+    private Photo createPendingPhoto(UUID photoId) {
+        return Photo.builder()
+                .photoId(photoId)
+                .userId(DEMO_USER_ID)
+                .filename(FILENAME)
+                .s3Key(S3_KEY_TEMPLATE.formatted(DEMO_USER_ID, photoId))
+                .status(PhotoStatus.PENDING_UPLOAD)
+                .contentType(CONTENT_TYPE)
+                .fileSizeBytes(FILE_SIZE_BYTES)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(86_400))
+                .build();
     }
 }

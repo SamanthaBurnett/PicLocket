@@ -1,5 +1,13 @@
 # Changelog
 
+## 5 - Implement Upload Verification
+### Updates:
+- Add S3 object verification
+- Implement upload completion workflow
+- Added temp completion endpoint
+- Added unit test
+- Verified with Postman
+
 ## 4 - S3 Presigned Upload Integration
 ### Updates:
 - Added AWS SDK and S3 config properties
