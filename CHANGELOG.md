@@ -1,5 +1,11 @@
 # Changelog
 
+## 12 - Max File Size Validation
+### Updates:
+- Add server-side validation for max upload size of 5mb
+- Reject uploads that exceed upload size limit
+- Add unit test coverage
+
 ## 11 - User-Owned Photo Queries
 ### Updates:
 - Add support for user-scoped photo retrieval in repository

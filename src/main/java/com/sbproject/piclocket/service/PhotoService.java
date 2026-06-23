@@ -20,6 +20,7 @@ import java.util.UUID;
 public class PhotoService {
 
     private static final Logger log = LoggerFactory.getLogger(PhotoService.class);
+    private static final long MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
     private final PhotoRepository photoRepository;
     private final S3PresignedUrlService s3PresignedUrlService;
@@ -42,6 +43,14 @@ public class PhotoService {
     public CreateUploadResponse createUploadRequest(CreateUploadRequest request) {
         UUID photoId = UUID.randomUUID();
         String userId = userContextService.getCurrentUserId();
+
+        // Confirm file size is within our limits
+        if (request.fileSizeBytes() > MAX_FILE_SIZE_BYTES) {
+            throw new IllegalArgumentException(
+                    "File size exceeds maximum allowed size of 5 MB"
+            );
+        }
+
         Instant now = Instant.now();
         Instant expiresAt = now.plus(1, ChronoUnit.DAYS); // set to auto delete after 1 day
 

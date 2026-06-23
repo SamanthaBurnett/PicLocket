@@ -89,6 +89,19 @@ class PhotoServiceTest {
     }
 
     @Test
+    void createUploadRequest_invalidRequestFileTooBig_throwsException() {
+        CreateUploadRequest request = new CreateUploadRequest(
+                FILENAME,
+                CONTENT_TYPE,
+                5 * 1024 * 1024 + 1L
+        );
+
+        assertThatThrownBy(() -> photoService.createUploadRequest(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("File size exceeds maximum allowed size of 5 MB");
+    }
+
+    @Test
     void getUploadedPhotos_uploadedPhotosExist_returnsUploadedPhotoResponses() {
         UUID photoId = UUID.randomUUID();
         Photo uploadedPhoto = createUploadedPhoto(photoId);
