@@ -1,5 +1,11 @@
 # Changelog
 
+## 11 - User-Owned Photo Queries
+### Updates:
+- Add support for user-scoped photo retrieval in repository
+- Update service to use user id from security context for photo retrieval
+- Verified through postman user A could not see user B's uploads and vice versa
+
 ## 10 - Remove Demo User - Real JWT Auth
 ### Updates:
 - Add spring security config

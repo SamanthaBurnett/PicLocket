@@ -109,7 +109,9 @@ public class PhotoService {
      * @return a list of {@link PhotoResponse}
      */
     public List<PhotoResponse> getUploadedPhotos() {
-        return photoRepository.findByStatus(PhotoStatus.UPLOADED)
+        String userId = userContextService.getCurrentUserId();
+
+        return photoRepository.findByUserIdAndStatus(userId, PhotoStatus.UPLOADED)
                 .stream()
                 .map(photo -> new PhotoResponse(
                         photo.getPhotoId(),

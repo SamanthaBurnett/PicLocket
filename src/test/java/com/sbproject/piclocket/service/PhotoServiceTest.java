@@ -93,7 +93,8 @@ class PhotoServiceTest {
         UUID photoId = UUID.randomUUID();
         Photo uploadedPhoto = createUploadedPhoto(photoId);
 
-        when(photoRepository.findByStatus(PhotoStatus.UPLOADED)).thenReturn(List.of(uploadedPhoto));
+        when(userContextService.getCurrentUserId()).thenReturn(DEMO_USER_ID);
+        when(photoRepository.findByUserIdAndStatus(DEMO_USER_ID, PhotoStatus.UPLOADED)).thenReturn(List.of(uploadedPhoto));
         when(s3PresignedUrlService.generateDownloadUrl(uploadedPhoto.getS3Key())).thenReturn(PRESIGNED_DOWNLOAD_URL);
 
         List<PhotoResponse> response = photoService.getUploadedPhotos();
@@ -103,7 +104,8 @@ class PhotoServiceTest {
         assertThat(response.getFirst().status()).isEqualTo(PhotoStatus.UPLOADED);
         assertThat(response.getFirst().downloadUrl()).isEqualTo(PRESIGNED_DOWNLOAD_URL);
 
-        verify(photoRepository).findByStatus(PhotoStatus.UPLOADED);
+        verify(userContextService).getCurrentUserId();
+        verify(photoRepository).findByUserIdAndStatus(DEMO_USER_ID, PhotoStatus.UPLOADED);
         verify(s3PresignedUrlService).generateDownloadUrl(uploadedPhoto.getS3Key());
     }
 

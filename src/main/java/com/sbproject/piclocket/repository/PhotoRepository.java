@@ -9,5 +9,5 @@ import java.util.UUID;
 
 public interface PhotoRepository extends JpaRepository<Photo, UUID> {
 
-    List<Photo> findByStatus(PhotoStatus status);
+    List<Photo> findByUserIdAndStatus(String userId, PhotoStatus status);
 }
