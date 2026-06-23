@@ -1,5 +1,12 @@
 # Changelog
 
+## 13 - Daily Upload Limit
+### Updates:
+- Add daily photo upload limit per user
+- Update repo to support count of uploads in a given day
+- Reject uploads when limit is exceeded
+- Add unit test coverage
+
 ## 12 - Max File Size Validation
 ### Updates:
 - Add server-side validation for max upload size of 5mb

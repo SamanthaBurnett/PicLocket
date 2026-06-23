@@ -21,6 +21,7 @@ public class PhotoService {
 
     private static final Logger log = LoggerFactory.getLogger(PhotoService.class);
     private static final long MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+    private static final long MAX_UPLOADS_PER_DAY = 5;
 
     private final PhotoRepository photoRepository;
     private final S3PresignedUrlService s3PresignedUrlService;
@@ -43,15 +44,14 @@ public class PhotoService {
     public CreateUploadResponse createUploadRequest(CreateUploadRequest request) {
         UUID photoId = UUID.randomUUID();
         String userId = userContextService.getCurrentUserId();
+        Instant now = Instant.now();
 
         // Confirm file size is within our limits
-        if (request.fileSizeBytes() > MAX_FILE_SIZE_BYTES) {
-            throw new IllegalArgumentException(
-                    "File size exceeds maximum allowed size of 5 MB"
-            );
-        }
+        validateFileSize(request.fileSizeBytes());
 
-        Instant now = Instant.now();
+        // Confirm we haven't exhausted out max uploads for the day
+        validateDailyUploadLimit(userId, now);
+
         Instant expiresAt = now.plus(1, ChronoUnit.DAYS); // set to auto delete after 1 day
 
         String s3Key = "v1/users/%s/photos/%s/original".formatted(userId, photoId);
@@ -128,5 +128,28 @@ public class PhotoService {
                         s3PresignedUrlService.generateDownloadUrl(photo.getS3Key())
                 ))
                 .toList();
+    }
+
+    private void validateFileSize(long fileSizeBytes) {
+        if (fileSizeBytes > MAX_FILE_SIZE_BYTES) {
+            throw new IllegalArgumentException(
+                    "File size exceeds maximum allowed size of 5 MB"
+            );
+        }
+    }
+
+    private void validateDailyUploadLimit(String userId, Instant now) {
+        Instant today = now.truncatedTo(ChronoUnit.DAYS);
+        Instant tomorrow = today.plus(1, ChronoUnit.DAYS);
+
+        long uploadsToday = photoRepository.countByUserIdAndCreatedAtBetween(
+                userId,
+                today,
+                tomorrow
+        );
+
+        if (uploadsToday >= MAX_UPLOADS_PER_DAY) {
+            throw new IllegalStateException("Daily upload limit reached");
+        }
     }
 }

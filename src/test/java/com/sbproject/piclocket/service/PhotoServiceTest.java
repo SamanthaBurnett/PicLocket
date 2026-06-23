@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -89,7 +90,7 @@ class PhotoServiceTest {
     }
 
     @Test
-    void createUploadRequest_invalidRequestFileTooBig_throwsException() {
+    void createUploadRequest_fileTooBig_throwsException() {
         CreateUploadRequest request = new CreateUploadRequest(
                 FILENAME,
                 CONTENT_TYPE,
@@ -99,6 +100,22 @@ class PhotoServiceTest {
         assertThatThrownBy(() -> photoService.createUploadRequest(request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("File size exceeds maximum allowed size of 5 MB");
+    }
+
+    @Test
+    void createUploadRequest_dailyLimitExceeded_throwsException() {
+        CreateUploadRequest request = new CreateUploadRequest(
+                FILENAME,
+                CONTENT_TYPE,
+                FILE_SIZE_BYTES
+        );
+
+        when(userContextService.getCurrentUserId()).thenReturn(DEMO_USER_ID);
+        when(photoRepository.countByUserIdAndCreatedAtBetween(eq(DEMO_USER_ID), any(), any())).thenReturn(6L);
+
+        assertThatThrownBy(() -> photoService.createUploadRequest(request))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Daily upload limit reached");
     }
 
     @Test
