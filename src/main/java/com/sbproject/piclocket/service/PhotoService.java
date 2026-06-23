@@ -20,7 +20,6 @@ import java.util.UUID;
 public class PhotoService {
 
     private static final Logger log = LoggerFactory.getLogger(PhotoService.class);
-    private static final String DEMO_USER_ID = "demo-user-id";
 
     private final PhotoRepository photoRepository;
     private final S3PresignedUrlService s3PresignedUrlService;

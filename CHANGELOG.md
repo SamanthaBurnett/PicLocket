@@ -1,5 +1,14 @@
 # Changelog
 
+## 10 - Remove Demo User - Real JWT Auth
+### Updates:
+- Add spring security config
+- Implement JWT validation
+- Remove hardcoded user
+- Secured api endpoints with JWT auth
+- Add development token generation for local testing
+- Validated end-to-end using postman
+
 ## 9 - Authenticated User Context
 ### Updates:
 - Add user context service

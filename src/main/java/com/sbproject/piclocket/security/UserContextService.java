@@ -1,17 +1,27 @@
 package com.sbproject.piclocket.security;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 /**
  * Provides access to the user associated with the current request.
- * This currently returns a fixed development user until JWT-based authentication is added.
  */
 @Service
 public class UserContextService {
 
-    private static final String DEVELOPMENT_USER_ID = "demo-user-id";
-
+    /**
+     * Retrieves the authenticated user id from the security context.
+     *
+     * @return authenticated user id
+     */
     public String getCurrentUserId() {
-        return DEVELOPMENT_USER_ID;
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || authentication.getPrincipal() == null) {
+            throw new IllegalStateException("No authenticated user found");
+        }
+
+        return authentication.getPrincipal().toString();
     }
 }
