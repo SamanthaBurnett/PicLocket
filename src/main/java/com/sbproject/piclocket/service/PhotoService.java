@@ -6,6 +6,7 @@ import com.sbproject.piclocket.dto.PhotoResponse;
 import com.sbproject.piclocket.model.Photo;
 import com.sbproject.piclocket.model.PhotoStatus;
 import com.sbproject.piclocket.repository.PhotoRepository;
+import com.sbproject.piclocket.security.UserContextService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -24,11 +25,13 @@ public class PhotoService {
     private final PhotoRepository photoRepository;
     private final S3PresignedUrlService s3PresignedUrlService;
     private final S3ObjectService s3ObjectService;
+    private final UserContextService userContextService;
 
-    public PhotoService(PhotoRepository photoRepository, S3PresignedUrlService s3PresignedUrlService, S3ObjectService s3ObjectService) {
+    public PhotoService(PhotoRepository photoRepository, S3PresignedUrlService s3PresignedUrlService, S3ObjectService s3ObjectService, UserContextService userContextService) {
         this.photoRepository = photoRepository;
         this.s3PresignedUrlService = s3PresignedUrlService;
         this.s3ObjectService = s3ObjectService;
+        this.userContextService = userContextService;
     }
 
     /**
@@ -39,16 +42,17 @@ public class PhotoService {
      */
     public CreateUploadResponse createUploadRequest(CreateUploadRequest request) {
         UUID photoId = UUID.randomUUID();
+        String userId = userContextService.getCurrentUserId();
         Instant now = Instant.now();
         Instant expiresAt = now.plus(1, ChronoUnit.DAYS); // set to auto delete after 1 day
 
-        String s3Key = "v1/users/%s/photos/%s/original".formatted(DEMO_USER_ID, photoId);
+        String s3Key = "v1/users/%s/photos/%s/original".formatted(userId, photoId);
 
         String uploadUrl = s3PresignedUrlService.generateUploadUrl(s3Key, request.contentType());
 
         Photo photo = Photo.builder()
                 .photoId(photoId)
-                .userId(DEMO_USER_ID)
+                .userId(userId)
                 .filename(request.filename())
                 .s3Key(s3Key)
                 .status(PhotoStatus.PENDING_UPLOAD)
@@ -62,9 +66,8 @@ public class PhotoService {
         photoRepository.save(photo);
 
         log.info(
-                "Created upload request for photoId={}, userId={}, status={}",
+                "Created upload request for photoId={}, status={}",
                 photoId,
-                DEMO_USER_ID,
                 PhotoStatus.PENDING_UPLOAD
         );
 

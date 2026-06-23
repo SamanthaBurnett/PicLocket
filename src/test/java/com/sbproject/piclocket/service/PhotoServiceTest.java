@@ -6,6 +6,7 @@ import com.sbproject.piclocket.dto.PhotoResponse;
 import com.sbproject.piclocket.model.Photo;
 import com.sbproject.piclocket.model.PhotoStatus;
 import com.sbproject.piclocket.repository.PhotoRepository;
+import com.sbproject.piclocket.security.UserContextService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -46,6 +47,9 @@ class PhotoServiceTest {
     @Mock
     private S3ObjectService s3ObjectService;
 
+    @Mock
+    private UserContextService userContextService;
+
     @InjectMocks
     private PhotoService photoService;
 
@@ -57,6 +61,7 @@ class PhotoServiceTest {
                 FILE_SIZE_BYTES
         );
 
+        when(userContextService.getCurrentUserId()).thenReturn(DEMO_USER_ID);
         when(s3PresignedUrlService.generateUploadUrl(anyString(), anyString())).thenReturn(PRESIGNED_UPLOAD_URL);
 
         CreateUploadResponse response = photoService.createUploadRequest(request);

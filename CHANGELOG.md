@@ -1,5 +1,11 @@
 # Changelog
 
+## 9 - Authenticated User Context
+### Updates:
+- Add user context service
+- Updated photo service to get user id through user context
+- Updated unit tests
+
 ## 8 - Documentation
 ### Updates:
 - Add postman collection for testing
