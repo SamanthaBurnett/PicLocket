@@ -1,5 +1,12 @@
 # Changelog
 
+## 14 - SQS Event Notifications
+### Updates:
+- Create SQS queue in AWS
+- Configure S3 bucket to publish object created event to the queue
+- Update IAM to allow application to consume messages from the queue
+- Verified flow S3 -> SQS -> PicLocketApplication
+
 ## 13 - Daily Upload Limit
 ### Updates:
 - Add daily photo upload limit per user

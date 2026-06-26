@@ -18,6 +18,13 @@ repositories {
     mavenCentral()
 }
 
+dependencyManagement {
+    imports {
+        mavenBom "software.amazon.awssdk:bom:2.25.60"
+        mavenBom "io.awspring.cloud:spring-cloud-aws-dependencies:4.0.2"
+    }
+}
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -25,8 +32,10 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 
     // AWS S3
-    implementation platform('software.amazon.awssdk:bom:2.25.60')
     implementation 'software.amazon.awssdk:s3'
+
+    // AWS SQS
+    implementation 'io.awspring.cloud:spring-cloud-aws-starter-sqs'
 
     // JWT
     implementation 'org.springframework.boot:spring-boot-starter-security'

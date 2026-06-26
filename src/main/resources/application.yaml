@@ -11,10 +11,26 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+
+  cloud:
+    aws:
+      region:
+        static: ${AWS_REGION}
+      credentials:
+        access-key: ${AWS_ACCESS_KEY_ID}
+        secret-key: ${AWS_SECRET_ACCESS_KEY}
+      sqs:
+        queue-not-found-strategy: fail
+
 aws:
   region: ${AWS_REGION}
   s3:
     bucket: ${AWS_S3_BUCKET}
+
 jwt:
   secret: ${JWT_SECRET}
   expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
+
+pic-locket:
+  sqs:
+    queue: ${SQS_QUEUE_NAME}
