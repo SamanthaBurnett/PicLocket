@@ -229,11 +229,9 @@ Some examples include:
 
 Building PicLocket reinforced several ideas that became much clearer through implementation than through diagrams alone.
 
-- Separating metadata from object storage simplifies retrieval and future application features.
-- Background workers allow processing to scale independently from the API.
-- Designing for retries requires thinking about idempotency early.
-- Object storage is only one part of the problem; tracking upload state and ownership is equally important.
-- Even a simple MVP quickly introduces operational concerns such as cleanup, retention, deployment, monitoring, and cost management.
+- Implementing upload state transitions revealed the tradeoffs between client-driven workflows and infrastructure-driven events.
+- Building the end-to-end upload pipeline highlighted the importance of coordinating metadata, object storage, asynchronous processing, and deployment as a single system.
+- Even a focused MVP introduced production concerns beyond application code, including cloud networking, security, environment configuration, and cost-conscious design.
 
 ---
 
