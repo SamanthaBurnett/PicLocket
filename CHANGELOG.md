@@ -1,5 +1,12 @@
 # Changelog
 
+## 15 - Automatic Upload Completion
+### Updates:
+- Add parser and `UploadPhotoEvent`
+- Update SQS listener to process photo and update status
+- Update repository to find photos by S3 key
+- Verified flow through postman
+
 ## 14 - SQS Event Notifications
 ### Updates:
 - Create SQS queue in AWS
