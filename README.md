@@ -1,127 +1,285 @@
 # PicLocket
 
-PicLocket is a photo backup system built to explore:
-- Direct S3 uploads using presigned URLs
-- Metadata persistence
-- Upload state management
-- Event-driven processing with SQS
+PicLocket is a cloud-native photo backup application built to explore the architecture behind modern file storage systems.
+
+During a recent interview process, I was asked to think through the design of a cloud backup service. The conversation surfaced several design decisions I wanted to understand more deeply, so instead of stopping at the interview, I decided to build the system myself.
+
+The goal wasn't simply to upload files to Amazon S3. It was to understand how the surrounding infrastructure works together: generating presigned URLs, storing metadata separately from objects, processing uploads asynchronously, securing APIs, deploying cloud services, and designing a system that remains simple while leaving room to grow.
+
+---
+
+## Live Demo
+
+**Frontend:** https://piclocket.vercel.app/
+
+*The frontend communicates with a Spring Boot backend deployed on Render.*
+
+---
 
 ## Current Status
-🚧 In Development
 
-## Architecture
+🚀 Functional MVP
+
+### Completed
+
+- Direct browser uploads using Amazon S3 presigned URLs
+- Metadata persistence in Amazon RDS (MySQL)
+- JWT-secured backend endpoints
+- Event-driven upload completion using Amazon S3 Event Notifications and Amazon SQS
+- Dockerized Spring Boot backend
+- Production deployment
+    - Frontend: Vercel
+    - Backend: Render
+    - Database: Amazon RDS
+    - Object Storage: Amazon S3
+
+### In Progress
+
+- Manual photo deletion
+- Automatic cleanup of expired photos
+- Scheduled cleanup worker
+- Cost-control improvements
+
+---
+
+# Architecture
+
 ```mermaid
-
 flowchart LR
 
-    Client[Client / Postman] --> API[Spring Boot API]
+    User[Browser]
 
+    Frontend[Vercel<br/>Next.js]
 
+    Backend[Render<br/>Spring Boot]
 
-    API --> MySQL[(MySQL<br/>Photo metadata)]
+    RDS[(Amazon RDS<br/>Photo Metadata)]
 
-    API --> S3[AWS S3<br/>Presigned URL generation]
+    S3[(Amazon S3<br/>Photo Storage)]
 
+    Queue[Amazon SQS]
 
+    User --> Frontend
 
-    Client --> S3Upload[AWS S3<br/>Direct upload/download]
+    Frontend --> Backend
 
+    Backend --> RDS
 
+    Backend --> S3
 
-    S3Upload --> S3
+    User --> S3
 
+    S3 --> Queue
+
+    Queue --> Backend
 ```
 
-## Upload Flow
+---
+
+# Upload Flow
 
 ```mermaid
-
 sequenceDiagram
 
     participant Client
 
     participant API as Spring Boot API
 
-    participant DB as MySQL
+    participant DB as Amazon RDS
 
-    participant S3 as AWS S3
+    participant S3 as Amazon S3
 
-
+    participant Queue as Amazon SQS
 
     Client->>API: POST /v1/photos/upload-request
 
-    API->>DB: Create PENDING_UPLOAD metadata row
+    API->>DB: Save PENDING_UPLOAD metadata
 
     API->>S3: Generate presigned PUT URL
 
-    API-->>Client: Return photoId + uploadUrl
+    API-->>Client: photoId + uploadUrl
 
+    Client->>S3: Upload photo directly
 
+    S3-->>Queue: Object Created Event
 
-    Client->>S3: PUT image using uploadUrl
+    Queue->>API: Upload notification
 
-    Client->>API: POST /v1/photos/{photoId}/complete
+    API->>DB: Mark photo UPLOADED
 
-    API->>S3: HeadObject using stored s3Key
-
-    API->>DB: Mark photo as UPLOADED
-
-    API-->>Client: 204 No Content
-
+    API->>DB: Set uploadedAt timestamp
 ```
 
-## Download Flow
+---
+
+# Download Flow
 
 ```mermaid
-
 sequenceDiagram
 
     participant Client
 
-    participant API as Spring Boot API
+    participant API
 
-    participant DB as MySQL
+    participant DB
 
-    participant S3 as AWS S3
-
-
+    participant S3
 
     Client->>API: GET /v1/photos
 
-    API->>DB: Find UPLOADED photos
+    API->>DB: Retrieve uploaded metadata
 
     API->>S3: Generate presigned GET URLs
 
-    API-->>Client: Return photo metadata + download URLs
+    API-->>Client: Metadata + download URLs
 
-    Client->>S3: Download image using downloadUrl
-
+    Client->>S3: Download photo
 ```
 
-## MVP Goals
-- Upload photos directly to S3
-- Store metadata in a relational database
-- Retrieve uploaded photos
-- Generate presigned download URLS
+---
 
-## Future Roadmap
-- SQS event processing
-- Background worker
+# Technology Stack
+
+## Backend
+
+- Java
+- Spring Boot
+- Spring Security
+- Spring Data JPA
+- Spring Cloud AWS
+
+## Frontend
+
+- Next.js
+- TypeScript
+- React
+
+## AWS
+
+- Amazon S3
+- Amazon SQS
+- Amazon RDS (MySQL)
+- IAM
+
+## Deployment
+
+- Docker
+- Render
+- Vercel
+
+---
+
+# Design Decisions
+
+## Direct-to-S3 uploads
+
+Large files never pass through the backend.
+
+The API is responsible for authentication, authorization, metadata creation, and generating presigned URLs, while the browser uploads directly to Amazon S3.
+
+**Benefits**
+
+- Lower API bandwidth
+- Better scalability
+- Lower infrastructure costs
+
+---
+
+## Metadata separate from object storage
+
+Amazon S3 stores the file.
+
+Amazon RDS stores:
+
+- Ownership
+- Upload status
+- Content type
+- File size
+- Timestamps
+
+Separating metadata from object storage makes searching, filtering, and future application features much simpler.
+
+---
+
+## Event-driven upload completion
+
+Rather than trusting the client to report that an upload completed, Amazon S3 publishes an Object Created event to Amazon SQS.
+
+The backend processes the queue message and updates the upload status.
+
+This creates a single source of truth while reducing opportunities for inconsistent state.
+
+---
+
+## Cost-conscious architecture
+
+PicLocket was intentionally designed with cost in mind.
+
+Some examples include:
+
+- Direct browser uploads reduce backend bandwidth.
+- Amazon SQS allows asynchronous processing instead of blocking API requests.
+- Metadata is stored separately from large objects.
+- Uploaded photos are designed to expire automatically after a retention period.
+- Temporary download links are generated using presigned URLs instead of exposing the bucket publicly.
+
+---
+
+# Lessons Learned
+
+Building PicLocket reinforced several ideas that became much clearer through implementation than through diagrams alone.
+
+- Separating metadata from object storage simplifies retrieval and future application features.
+- Background workers allow processing to scale independently from the API.
+- Designing for retries requires thinking about idempotency early.
+- Object storage is only one part of the problem; tracking upload state and ownership is equally important.
+- Even a simple MVP quickly introduces operational concerns such as cleanup, retention, deployment, monitoring, and cost management.
+
+---
+
+# Roadmap
+
+- Manual photo deletion
+- Delete objects from Amazon S3
+- Automatic expiration after one hour
+- Scheduled cleanup worker
+- Monitoring and observability
 - Upload quotas
-- Automatic photo expiration
-- Batch Uploads
-- Duplicate deletion
+- Batch uploads
 
-## End-to-End Testing
-A postman collection is included under
+---
+
+# Local Development
+
+1. Configure environment variables.
+2. Start MySQL (or connect to Amazon RDS).
+3. Run the Spring Boot application.
+4. Start the Next.js frontend.
+5. Upload a photo through the web application.
+
+---
+
+## API Testing
+
+A Postman collection is included for testing the backend independently of the frontend.
 
 ```text
 postman/PicLocket.postman_collection.json
 ```
 
-Workflow:
+The collection includes requests for:
 
-1. Create Upload Request
-2. Upload File to S3
-3. Complete Upload
-4. Retrieve Uploaded Photos
+1. Generate development JWT
+2. Create upload request
+3. Retrieve uploaded photos
+4. Delete uploaded photo *(coming soon)*
+
+The frontend exercises the same API endpoints used by the Postman collection.
+
+---
+
+# Why I Built This
+
+One of my favorite parts of engineering is that sometimes the best way to learn a system is to build it.
+
+PicLocket began as an interview discussion, but it became an opportunity to explore how cloud services work together to build a production-style application from the ground up.
