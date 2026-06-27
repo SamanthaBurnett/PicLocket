@@ -9,7 +9,10 @@ import com.sbproject.piclocket.repository.PhotoRepository;
 import com.sbproject.piclocket.security.UserContextService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -128,6 +131,26 @@ public class PhotoService {
                         s3PresignedUrlService.generateDownloadUrl(photo.getS3Key())
                 ))
                 .toList();
+    }
+
+    /**
+     * Delete a photo from the repository and S3.
+     *
+     * @param photoId the unique identifier of the photo to be deleted
+     */
+    @Transactional
+    public void deletePhoto(UUID photoId) {
+        String userId = userContextService.getCurrentUserId();
+
+        Photo photo = photoRepository.findByPhotoIdAndUserId(photoId, userId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Photo not found"
+                ));
+
+        s3ObjectService.deleteObject(photo.getS3Key());
+
+        photoRepository.delete(photo);
     }
 
     private void validateFileSize(long fileSizeBytes) {

@@ -1,5 +1,12 @@
 # Changelog
 
+## 21 - Add Delete Functionality
+### Updates:
+- Add `DELETE /v1/photos/{photoId}`
+- Add delete logic to `PhotService
+- Add ownership validation before deletion
+- Add unit test coverage`
+
 ## 20 - Add Docker Support
 ### Updates:
 - Add docker support

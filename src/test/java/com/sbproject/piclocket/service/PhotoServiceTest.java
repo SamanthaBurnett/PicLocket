@@ -13,9 +13,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -136,6 +139,37 @@ class PhotoServiceTest {
         verify(photoRepository).findByUserIdAndStatus(DEMO_USER_ID, PhotoStatus.UPLOADED);
         verify(s3PresignedUrlService).generateDownloadUrl(uploadedPhoto.getS3Key());
     }
+
+    @Test
+    void deletePhoto_photoExistsForUser_deletesS3ObjectAndMetadata() {
+        UUID photoId = UUID.randomUUID();
+        Photo uploadedPhoto = createUploadedPhoto(photoId);
+
+        when(userContextService.getCurrentUserId()).thenReturn(DEMO_USER_ID);
+        when(photoRepository.findByPhotoIdAndUserId(photoId, DEMO_USER_ID))
+                .thenReturn(Optional.of(uploadedPhoto));
+
+        photoService.deletePhoto(photoId);
+
+        verify(s3ObjectService).deleteObject(uploadedPhoto.getS3Key());
+        verify(photoRepository).delete(uploadedPhoto);
+    }
+
+    @Test
+    void deletePhoto_photoDoesNotExistForUser_throwsExceptionAndDoesNotDelete() {
+        UUID photoId = UUID.randomUUID();
+
+        when(userContextService.getCurrentUserId()).thenReturn(DEMO_USER_ID);
+        when(photoRepository.findByPhotoIdAndUserId(photoId, DEMO_USER_ID))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> photoService.deletePhoto(photoId))
+                .isInstanceOf(ResponseStatusException.class);
+
+        verify(s3ObjectService, never()).deleteObject(anyString());
+        verify(photoRepository, never()).delete(any(Photo.class));
+    }
+
 
     private Photo createUploadedPhoto(UUID photoId) {
         return Photo.builder()

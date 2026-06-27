@@ -16,4 +16,6 @@ public interface PhotoRepository extends JpaRepository<Photo, UUID> {
     long countByUserIdAndCreatedAtBetween(String userId, Instant start, Instant end);
 
     Optional<Photo> findByS3Key(String s3Key);
+
+    Optional<Photo> findByPhotoIdAndUserId(UUID photoId, String userId);
 }

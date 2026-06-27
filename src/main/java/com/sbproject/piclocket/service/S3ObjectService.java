@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.S3Exception;
@@ -52,5 +53,16 @@ public class S3ObjectService {
             log.error("Failed to verify S3 object");
             throw exception;
         }
+    }
+
+    public void deleteObject(String s3Key) {
+        DeleteObjectRequest request = DeleteObjectRequest.builder()
+                .bucket(awsProperties.s3().bucket())
+                .key(s3Key)
+                .build();
+
+        s3Client.deleteObject(request);
+
+        log.info("Deleted S3 object for photo.");
     }
 }

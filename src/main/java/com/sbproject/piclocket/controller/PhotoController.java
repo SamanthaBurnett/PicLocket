@@ -5,6 +5,7 @@ import com.sbproject.piclocket.dto.CreateUploadResponse;
 import com.sbproject.piclocket.dto.PhotoResponse;
 import com.sbproject.piclocket.service.PhotoService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -44,5 +45,11 @@ public class PhotoController {
     @GetMapping
     public List<PhotoResponse> getUploadedPhotos() {
         return photoService.getUploadedPhotos();
+    }
+
+    @DeleteMapping("/{photoId}")
+    public ResponseEntity<Void> deletePhoto(@PathVariable UUID photoId) {
+        photoService.deletePhoto(photoId);
+        return ResponseEntity.noContent().build();
     }
 }
