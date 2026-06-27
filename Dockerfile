@@ -1,5 +1,5 @@
 # ---------- Build Stage ----------
-FROM azul/zulu-openjdk:21.0.8-21-jdk AS builder
+FROM azul/zulu-openjdk:21-jdk AS builder
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ COPY src src
 RUN ./gradlew bootJar --no-daemon
 
 # ---------- Runtime Stage ----------
-FROM azul/zulu-openjdk:21.0.8-21-jre
+FROM azul/zulu-openjdk:21-jre
 
 WORKDIR /app
 
