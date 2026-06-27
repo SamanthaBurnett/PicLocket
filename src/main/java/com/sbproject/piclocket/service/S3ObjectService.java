@@ -39,17 +39,17 @@ public class S3ObjectService {
 
         try {
             s3Client.headObject(request);
-            log.info("Verified S3 object exists for key={}", s3Key);
+            log.info("Verified S3 object exists.");
             return true;
         } catch (NoSuchKeyException exception) {
             return false;
         } catch (S3Exception exception) {
             if (exception.statusCode() == 404) {
-                log.warn("No S3 object found for key={}", s3Key);
+                log.warn("No S3 object found.");
                 return false;
             }
 
-            log.error("Failed to verify S3 object for key={}, statusCode={}", s3Key, exception.statusCode());
+            log.error("Failed to verify S3 object");
             throw exception;
         }
     }

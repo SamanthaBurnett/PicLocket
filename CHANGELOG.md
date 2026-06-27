@@ -1,5 +1,10 @@
 # Changelog
 
+## 18 - Fix Security Config
+### Updates:
+- Update security config
+- Remove hello world controller
+
 ## 17 - Idempotent Event Processing
 ### Updates:
 - Update listener to ignore duplicate requests

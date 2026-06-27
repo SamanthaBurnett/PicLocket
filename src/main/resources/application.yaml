@@ -34,3 +34,5 @@ jwt:
 pic-locket:
   sqs:
     queue: ${SQS_QUEUE_NAME}
+  cors:
+    allowed-origin: ${CORS_ALLOWED_ORIGIN}
