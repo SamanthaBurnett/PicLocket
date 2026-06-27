@@ -3,6 +3,7 @@ package com.sbproject.piclocket.listener;
 import com.sbproject.piclocket.dto.s3.S3UploadEventParser;
 import com.sbproject.piclocket.dto.s3.UploadedPhotoEvent;
 import com.sbproject.piclocket.model.Photo;
+import com.sbproject.piclocket.model.PhotoStatus;
 import com.sbproject.piclocket.repository.PhotoRepository;
 import io.awspring.cloud.sqs.annotation.SqsListener;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,12 @@ public class S3UploadEventListener {
                                     new IllegalStateException(
                                             "Photo not found for S3 key."
                                     ));
+
+            // Make uploading idempotent
+            if (photo.getStatus() == PhotoStatus.UPLOADED) {
+                log.info("Skipping duplicate upload event");
+                return;
+            }
 
             photo.markUploaded(Instant.now());
             photoRepository.save(photo);

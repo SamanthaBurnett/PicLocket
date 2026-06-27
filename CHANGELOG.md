@@ -1,5 +1,10 @@
 # Changelog
 
+## 17 - Idempotent Event Processing
+### Updates:
+- Update listener to ignore duplicate requests
+- Add tests
+
 ## 16 - Remove Manual Upload Completion Endpoint
 ### Updates:
 - Remove `POST /complete`
