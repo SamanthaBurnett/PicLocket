@@ -16,7 +16,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -137,72 +135,6 @@ class PhotoServiceTest {
         verify(userContextService).getCurrentUserId();
         verify(photoRepository).findByUserIdAndStatus(DEMO_USER_ID, PhotoStatus.UPLOADED);
         verify(s3PresignedUrlService).generateDownloadUrl(uploadedPhoto.getS3Key());
-    }
-
-    @Test
-    void completeUpload_photoExistsInDbAndS3_marksPhotoUploaded() {
-        UUID photoId = UUID.randomUUID();
-        Photo photo = createPendingPhoto(photoId);
-
-        when(photoRepository.findById(photoId)).thenReturn(Optional.of(photo));
-        when(s3ObjectService.objectExists(photo.getS3Key())).thenReturn(true);
-
-        photoService.completeUpload(photoId);
-
-        assertThat(photo.getStatus()).isEqualTo(PhotoStatus.UPLOADED);
-        assertThat(photo.getUploadedAt()).isNotNull();
-        assertThat(photo.getUpdatedAt()).isEqualTo(photo.getUploadedAt());
-
-        verify(s3ObjectService).objectExists(photo.getS3Key());
-        verify(photoRepository).save(photo);
-    }
-
-    @Test
-    void completeUpload_photoExistsInDbButNotS3_throwsException() {
-        UUID photoId = UUID.randomUUID();
-        Photo photo = createPendingPhoto(photoId);
-
-        when(photoRepository.findById(photoId)).thenReturn(Optional.of(photo));
-        when(s3ObjectService.objectExists(photo.getS3Key())).thenReturn(false);
-
-        assertThatThrownBy(() -> photoService.completeUpload(photoId))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining(photoId.toString());
-
-        assertThat(photo.getStatus()).isEqualTo(PhotoStatus.PENDING_UPLOAD);
-        assertThat(photo.getUploadedAt()).isNull();
-
-        verify(s3ObjectService).objectExists(photo.getS3Key());
-        verify(photoRepository, never()).save(photo);
-    }
-
-    @Test
-    void completeUpload_missingPhoto_throwsException() {
-        UUID photoId = UUID.randomUUID();
-
-        when(photoRepository.findById(photoId)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> photoService.completeUpload(photoId))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining(photoId.toString());
-
-        verify(s3ObjectService, never()).objectExists(anyString());
-        verify(photoRepository, never()).save(any(Photo.class));
-    }
-
-    private Photo createPendingPhoto(UUID photoId) {
-        return Photo.builder()
-                .photoId(photoId)
-                .userId(DEMO_USER_ID)
-                .filename(FILENAME)
-                .s3Key(S3_KEY_TEMPLATE.formatted(DEMO_USER_ID, photoId))
-                .status(PhotoStatus.PENDING_UPLOAD)
-                .contentType(CONTENT_TYPE)
-                .fileSizeBytes(FILE_SIZE_BYTES)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .expiresAt(Instant.now().plusSeconds(86_400))
-                .build();
     }
 
     private Photo createUploadedPhoto(UUID photoId) {

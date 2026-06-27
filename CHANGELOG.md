@@ -1,5 +1,9 @@
 # Changelog
 
+## 16 - Remove Manual Upload Completion Endpoint
+### Updates:
+- Remove `POST /complete`
+
 ## 15 - Automatic Upload Completion
 ### Updates:
 - Add parser and `UploadPhotoEvent`

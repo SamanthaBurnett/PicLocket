@@ -45,17 +45,4 @@ public class PhotoController {
     public List<PhotoResponse> getUploadedPhotos() {
         return photoService.getUploadedPhotos();
     }
-
-    /**
-     * Temp endpoint to test completion of uploads.
-     *
-     * @param photoId unique identifier of photo
-     * @return 204 status code
-     */
-    @PostMapping("/{photoId}/complete")
-    public ResponseEntity<Void> completeUpload(@PathVariable UUID photoId) {
-        photoService.completeUpload(photoId);
-
-        return ResponseEntity.noContent().build();
-    }
 }
