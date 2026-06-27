@@ -1,5 +1,9 @@
 # Changelog
 
+## 20 - Add Docker Support
+### Updates:
+- Add docker support
+
 ## 19 - Config Cleanup
 ### Updates:
 - Config cleanup
