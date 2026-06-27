@@ -1,5 +1,9 @@
 # Changelog
 
+## 19 - Config Cleanup
+### Updates:
+- Config cleanup
+
 ## 18 - Fix Security Config
 ### Updates:
 - Update security config
