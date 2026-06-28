@@ -1,0 +1,485 @@
+{
+  "info": {
+    "name": "PicLocket API - Final MVP Test",
+    "description": "Postman collection for testing the PicLocket MVP after event-driven upload completion, JWT-backed ownership, manual deletion, and scheduled cleanup work. Flow: generate tokens, create an upload request, upload to S3, verify ownership isolation, delete the uploaded photo, and verify it is no longer returned.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "userAId",
+      "value": "user-a"
+    },
+    {
+      "key": "userBId",
+      "value": "user-b"
+    },
+    {
+      "key": "userAToken",
+      "value": ""
+    },
+    {
+      "key": "userBToken",
+      "value": ""
+    },
+    {
+      "key": "photoId",
+      "value": ""
+    },
+    {
+      "key": "uploadUrl",
+      "value": ""
+    },
+    {
+      "key": "filename",
+      "value": "piclocket-test.jpg"
+    },
+    {
+      "key": "contentType",
+      "value": "image/jpeg"
+    },
+    {
+      "key": "fileSizeBytes",
+      "value": "4259"
+    }
+  ],
+  "item": [
+    {
+      "name": "0 - Protected Endpoint Without Token",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v1/photos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "photos"
+          ]
+        },
+        "description": "Confirms protected endpoints reject requests without a Bearer token."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Protected endpoint rejects missing token', function () {",
+              "    pm.expect([401, 403]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1 - Generate User A Token",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/dev/token?userId={{userAId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "dev",
+            "token"
+          ],
+          "query": [
+            {
+              "key": "userId",
+              "value": "{{userAId}}"
+            }
+          ]
+        },
+        "description": "Generates a JWT for User A."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('User A token generated', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.collectionVariables.set('userAToken', pm.response.text());"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 - User A Create Upload Request",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{userAToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"filename\": \"{{filename}}\",\n  \"contentType\": \"{{contentType}}\",\n  \"fileSizeBytes\": {{fileSizeBytes}}\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v1/photos/upload-request",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "photos",
+            "upload-request"
+          ]
+        },
+        "description": "Creates a PENDING_UPLOAD photo for User A and stores the returned photoId/uploadUrl."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('User A upload request created', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "const response = pm.response.json();",
+              "pm.collectionVariables.set('photoId', response.photoId);",
+              "pm.collectionVariables.set('uploadUrl', response.uploadUrl);",
+              "pm.test('Upload response contains photoId and uploadUrl', function () {",
+              "    pm.expect(response.photoId).to.be.a('string');",
+              "    pm.expect(response.uploadUrl).to.be.a('string');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 - Upload File to S3",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "{{contentType}}"
+          }
+        ],
+        "body": {
+          "mode": "file",
+          "file": {
+            "src": ""
+          }
+        },
+        "url": {
+          "raw": "{{uploadUrl}}",
+          "host": [
+            "{{uploadUrl}}"
+          ]
+        },
+        "description": "Uploads the selected local image file directly to S3 using User A's presigned URL. Manually select the file in Postman before sending."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('File uploaded to S3', function () {",
+              "    pm.expect([200, 204]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 - User A Get Uploaded Photos",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{userAToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/photos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "photos"
+          ]
+        },
+        "description": "Confirms User A can see the uploaded photo after the S3 -> SQS -> listener flow marks it UPLOADED. If this fails immediately after upload, wait a few seconds and retry this request."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('User A request succeeds', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('User A sees their uploaded photo', function () {",
+              "    const response = pm.response.json();",
+              "    const userAPhotoId = pm.collectionVariables.get('photoId');",
+              "    const matchingPhoto = response.find(photo => photo.photoId === userAPhotoId);",
+              "    pm.expect(matchingPhoto).to.not.be.undefined;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 - Generate User B Token",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/dev/token?userId={{userBId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "dev",
+            "token"
+          ],
+          "query": [
+            {
+              "key": "userId",
+              "value": "{{userBId}}"
+            }
+          ]
+        },
+        "description": "Generates a JWT for User B."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('User B token generated', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.collectionVariables.set('userBToken', pm.response.text());"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 - User B Get Uploaded Photos",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{userBToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/photos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "photos"
+          ]
+        },
+        "description": "Confirms User B cannot see User A's uploaded photo."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('User B request succeeds', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('User B does not see User A photo', function () {",
+              "    const response = pm.response.json();",
+              "    const userAPhotoId = pm.collectionVariables.get('photoId');",
+              "    const matchingPhoto = response.find(photo => photo.photoId === userAPhotoId);",
+              "    pm.expect(matchingPhoto).to.be.undefined;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7 - User B Cannot Delete User A Photo",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{userBToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/photos/{{photoId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "photos",
+            "{{photoId}}"
+          ]
+        },
+        "description": "Confirms ownership validation prevents User B from deleting User A's photo."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('User B cannot delete User A photo', function () {",
+              "    pm.expect([403, 404]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8 - User A Delete Uploaded Photo",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{userAToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/photos/{{photoId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "photos",
+            "{{photoId}}"
+          ]
+        },
+        "description": "Deletes User A's uploaded photo from S3 and removes its metadata."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('User A deletes their photo', function () {",
+              "    pm.response.to.have.status(204);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "9 - User A Get Uploaded Photos After Delete",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{userAToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/photos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "photos"
+          ]
+        },
+        "description": "Confirms the deleted photo is no longer returned."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('User A request succeeds', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Deleted photo is not returned', function () {",
+              "    const response = pm.response.json();",
+              "    const deletedPhotoId = pm.collectionVariables.get('photoId');",
+              "    const matchingPhoto = response.find(photo => photo.photoId === deletedPhotoId);",
+              "    pm.expect(matchingPhoto).to.be.undefined;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 - User A Delete Same Photo Again",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{userAToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/photos/{{photoId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "photos",
+            "{{photoId}}"
+          ]
+        },
+        "description": "Confirms deleting an already-deleted photo returns not found."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Already deleted photo is not found', function () {",
+              "    pm.expect([404]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

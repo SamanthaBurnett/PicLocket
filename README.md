@@ -272,7 +272,7 @@ Building PicLocket reinforced several ideas that became much clearer through imp
 A Postman collection is included for testing the backend independently of the frontend.
 
 ```text
-postman/PicLocket.postman_collection.json
+postman/PicLocket_Final_MVP.postman_collection.json
 ```
 
 The collection includes requests for:
