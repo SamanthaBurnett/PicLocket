@@ -86,36 +86,6 @@ public class PhotoService {
     }
 
     /**
-     * Checks whether or not a photo upload has successfully been completed and adjusts state accordingly
-     * If successful, state is updated to UPLOADED
-     *
-     * @param photoId the unique identifier of a photo
-     */
-    public void completeUpload(UUID photoId) {
-        Photo photo = photoRepository.findById(photoId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Photo not found for id=%s".formatted(photoId)
-                ));
-
-        boolean photoExists = s3ObjectService.objectExists(photo.getS3Key());
-
-        if (!photoExists) {
-            log.warn("Upload completion requested but S3 object was not found for photoId={}", photoId);
-
-            throw new IllegalStateException(
-                    "Photo upload has not completed for id=%s".formatted(photoId)
-            );
-        }
-
-        Instant now = Instant.now();
-
-        photo.markUploaded(now);
-        photoRepository.save(photo);
-
-        log.info("Upload completed for photoId={}, status={}", photoId, PhotoStatus.UPLOADED);
-    }
-
-    /**
      * Retrieves photos that have successfully uploaded to S3.
      *
      * @return a list of {@link PhotoResponse}
@@ -170,6 +140,8 @@ public class PhotoService {
                 today,
                 tomorrow
         );
+
+        log.info("Uploads today: {}", uploadsToday);
 
         if (uploadsToday >= MAX_UPLOADS_PER_DAY) {
             throw new IllegalStateException("Daily upload limit reached");
