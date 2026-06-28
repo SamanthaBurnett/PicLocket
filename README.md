@@ -26,23 +26,19 @@ The goal wasn't simply to upload files to Amazon S3. It was to understand how th
 - Metadata persistence in Amazon RDS (MySQL)
 - JWT-secured backend endpoints
 - Event-driven upload completion using Amazon S3 Event Notifications and Amazon SQS
+- Manual photo deletion
+- Automatic photo expiration
+- Scheduled cleanup of expired photos
 - Dockerized Spring Boot backend
 - Production deployment
-    - Frontend: Vercel
-    - Backend: Render
-    - Database: Amazon RDS
-    - Object Storage: Amazon S3
-
-### In Progress
-
-- Manual photo deletion
-- Automatic cleanup of expired photos
-- Scheduled cleanup worker
-- Cost-control improvements
+  - Frontend: Vercel
+  - Backend: Render
+  - Database: Amazon RDS
+  - Object Storage: Amazon S3
 
 ---
 
-# Architecture
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -76,7 +72,7 @@ flowchart LR
 
 ---
 
-# Upload Flow
+## Upload Flow
 
 ```mermaid
 sequenceDiagram
@@ -112,7 +108,7 @@ sequenceDiagram
 
 ---
 
-# Download Flow
+## Download Flow
 
 ```mermaid
 sequenceDiagram
@@ -138,9 +134,33 @@ sequenceDiagram
 
 ---
 
-# Technology Stack
+## Cleanup Flow
 
-## Backend
+```mermaid
+sequenceDiagram
+
+    participant Scheduler
+
+    participant API as Spring Boot
+
+    participant DB as Amazon RDS
+
+    participant S3 as Amazon S3
+
+    Scheduler->>API: Trigger scheduled cleanup
+
+    API->>DB: Find expired photos
+
+    API->>S3: Delete expired objects
+
+    API->>DB: Remove expired metadata
+```
+
+---
+
+## Technology Stack
+
+### Backend
 
 - Java
 - Spring Boot
@@ -148,30 +168,23 @@ sequenceDiagram
 - Spring Data JPA
 - Spring Cloud AWS
 
-## Frontend
-
-- Next.js
-- TypeScript
-- React
-
-## AWS
+### AWS
 
 - Amazon S3
 - Amazon SQS
 - Amazon RDS (MySQL)
 - IAM
 
-## Deployment
+### Deployment
 
 - Docker
 - Render
-- Vercel
 
 ---
 
-# Design Decisions
+## Design Decisions
 
-## Direct-to-S3 uploads
+### Direct-to-S3 uploads
 
 Large files never pass through the backend.
 
@@ -185,7 +198,7 @@ The API is responsible for authentication, authorization, metadata creation, and
 
 ---
 
-## Metadata separate from object storage
+### Metadata separate from object storage
 
 Amazon S3 stores the file.
 
@@ -201,7 +214,7 @@ Separating metadata from object storage makes searching, filtering, and future a
 
 ---
 
-## Event-driven upload completion
+### Event-driven upload completion
 
 Rather than trusting the client to report that an upload completed, Amazon S3 publishes an Object Created event to Amazon SQS.
 
@@ -211,7 +224,7 @@ This creates a single source of truth while reducing opportunities for inconsist
 
 ---
 
-## Cost-conscious architecture
+### Cost-conscious architecture
 
 PicLocket was intentionally designed with cost in mind.
 
@@ -220,34 +233,31 @@ Some examples include:
 - Direct browser uploads reduce backend bandwidth.
 - Amazon SQS allows asynchronous processing instead of blocking API requests.
 - Metadata is stored separately from large objects.
-- Uploaded photos are designed to expire automatically after a retention period.
+- Uploaded photos are automatically deleted after a one-hour retention period.
+- A scheduled cleanup worker removes expired objects and metadata.
 - Temporary download links are generated using presigned URLs instead of exposing the bucket publicly.
 
 ---
 
-# Lessons Learned
+## Lessons Learned
 
 Building PicLocket reinforced several ideas that became much clearer through implementation than through diagrams alone.
 
-- Implementing upload state transitions revealed the tradeoffs between client-driven workflows and infrastructure-driven events.
+- Implementing upload state transitions made it much clearer how object storage, metadata, and asynchronous processing must stay coordinated throughout the lifecycle of a file.
 - Building the end-to-end upload pipeline highlighted the importance of coordinating metadata, object storage, asynchronous processing, and deployment as a single system.
-- Even a focused MVP introduced production concerns beyond application code, including cloud networking, security, environment configuration, and cost-conscious design.
+- Even a focused MVP introduced production concerns beyond application code, including cloud networking, security, environment configuration, scheduling, and cost-conscious design.
 
 ---
 
-# Roadmap
+## Roadmap
 
-- Manual photo deletion
-- Delete objects from Amazon S3
-- Automatic expiration after one hour
-- Scheduled cleanup worker
 - Monitoring and observability
-- Upload quotas
 - Batch uploads
+- Upload deduplication
 
 ---
 
-# Local Development
+## Local Development
 
 1. Configure environment variables.
 2. Start MySQL (or connect to Amazon RDS).
@@ -270,13 +280,13 @@ The collection includes requests for:
 1. Generate development JWT
 2. Create upload request
 3. Retrieve uploaded photos
-4. Delete uploaded photo *(coming soon)*
+4. Delete uploaded photo
 
 The frontend exercises the same API endpoints used by the Postman collection.
 
 ---
 
-# Why I Built This
+## Why I Built This
 
 One of my favorite parts of engineering is that sometimes the best way to learn a system is to build it.
 
