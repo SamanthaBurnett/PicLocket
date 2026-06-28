@@ -18,4 +18,6 @@ public interface PhotoRepository extends JpaRepository<Photo, UUID> {
     Optional<Photo> findByS3Key(String s3Key);
 
     Optional<Photo> findByPhotoIdAndUserId(UUID photoId, String userId);
+
+    List<Photo> findByExpiresAtBefore(Instant now);
 }

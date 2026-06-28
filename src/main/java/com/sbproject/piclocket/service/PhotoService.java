@@ -55,7 +55,7 @@ public class PhotoService {
         // Confirm we haven't exhausted out max uploads for the day
         validateDailyUploadLimit(userId, now);
 
-        Instant expiresAt = now.plus(1, ChronoUnit.DAYS); // set to auto delete after 1 day
+        Instant expiresAt = now.plus(1, ChronoUnit.HOURS); // set to auto delete after 1 hour
 
         String s3Key = "v1/users/%s/photos/%s/original".formatted(userId, photoId);
 

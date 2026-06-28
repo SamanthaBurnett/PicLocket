@@ -36,3 +36,5 @@ pic-locket:
     queue: ${SQS_QUEUE_NAME}
   cors:
     allowed-origin: ${CORS_ALLOWED_ORIGIN}
+  cleanup:
+    fixed-delay-ms: ${PHOTO_CLEANUP_FIXED_DELAY_MS:300000}

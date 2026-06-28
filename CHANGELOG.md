@@ -1,5 +1,11 @@
 # Changelog
 
+## 22 - Add Delete Functionality
+### Updates:
+- Add cleanup service
+- Add scheduled cleanup job for expired photos
+- Add test coverage
+
 ## 21 - Add Delete Functionality
 ### Updates:
 - Add `DELETE /v1/photos/{photoId}`
