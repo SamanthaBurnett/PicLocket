@@ -10,6 +10,8 @@ The goal wasn't simply to upload files to Amazon S3. It was to understand how th
 
 ## Live Demo
 
+Would you like to try it out?
+
 **Frontend:** https://piclocket.vercel.app/
 
 *The frontend communicates with a Spring Boot backend deployed on Render.*
@@ -29,7 +31,6 @@ The goal wasn't simply to upload files to Amazon S3. It was to understand how th
 - Manual photo deletion
 - Automatic photo expiration
 - Scheduled cleanup of expired photos
-- Dockerized Spring Boot backend
 - Production deployment
   - Frontend: Vercel
   - Backend: Render
